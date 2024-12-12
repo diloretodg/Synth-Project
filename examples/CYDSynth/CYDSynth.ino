@@ -6,18 +6,21 @@
 #define SAMPLE_RATE 44100
 #define BUFFER_SIZE 128
 #define I2S_PORT I2S_NUM_0
+#define WAVE_WIDTH 320
+#define WAVE_HEIGHT 240
 
 TFT_eSPI tft = TFT_eSPI();
 float phase = 0.0f;
 float frequency = 440.0f;
 
 void setup() {
-  // Initialize display
+  Serial.begin(115200);
+
   tft.init();
   tft.setRotation(3);
   tft.fillScreen(TFT_BLACK);
-  
-  // Configure I2S
+  tft.initTouch();
+
   i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
     .sample_rate = SAMPLE_RATE,
@@ -31,50 +34,46 @@ void setup() {
     .tx_desc_auto_clear = true,
     .fixed_mclk = 0
   };
-  
+
   i2s_pin_config_t pin_config = {
     .bck_io_num = 25,
     .ws_io_num = 26,
     .data_out_num = 27,
     .data_in_num = I2S_PIN_NO_CHANGE
   };
-  
+
   i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
   i2s_set_pin(I2S_PORT, &pin_config);
 }
 
 void loop() {
   static int16_t samples[BUFFER_SIZE * 2];
-  static uint16_t waveform[240];
-  
-  // Generate samples
+  static uint16_t waveform[WAVE_WIDTH];
+
   for(int i = 0; i < BUFFER_SIZE; i++) {
     float sample = sin(2 * PI * phase);
     int16_t intSample = sample * 32767;
     samples[i*2] = intSample;
     samples[i*2+1] = intSample;
-    
+
     phase += frequency / SAMPLE_RATE;
     if(phase >= 1.0f) phase -= 1.0f;
-    
-    // Store samples for visualization
-    if(i < 240) waveform[i] = map(intSample, -32768, 32767, 0, 135);
+
+    if(i < WAVE_WIDTH) waveform[i] = map(intSample, -32768, 32767, 0, 135);
   }
-  
-  // Output audio
+
   size_t bytes_written;
   i2s_write(I2S_PORT, samples, BUFFER_SIZE * 4, &bytes_written, portMAX_DELAY);
-  
-  // Update display
+
   tft.fillScreen(TFT_BLACK);
-  for(int i = 0; i < 239; i++) {
+  for(int i = 0; i < WAVE_WIDTH-1; i++) {
     tft.drawLine(i, waveform[i], i+1, waveform[i+1], TFT_GREEN);
   }
-  
-  // Read touch input
+
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
-      // Use x coordinate for frequency control
-      frequency = map(x, 0, WAVE_WIDTH, 100, 2000);
+    frequency = map(x, 0, WAVE_WIDTH, 100, 2000);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString("Freq: " + String(frequency) + " Hz", 10, 10, 2);
   }
 }
