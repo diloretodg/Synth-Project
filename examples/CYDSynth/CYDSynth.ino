@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include <driver/i2s.h>
-#include <driver/touch_pad.h>
 
 #define SAMPLE_RATE 44100
 #define BUFFER_SIZE 128
@@ -17,14 +16,13 @@ float frequency = 440.0f;
 void setup() {
   Serial.begin(115200);
 
+  // Initialize display
   tft.init();
   tft.setRotation(3);
   tft.fillScreen(TFT_BLACK);
+  tft.setTouch(nullptr);
 
-  if (!tft.initTouch()) {
-    Serial.println("Touch initialization failed");
-  }
-
+  // Configure I2S
   i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
     .sample_rate = SAMPLE_RATE,
@@ -63,6 +61,7 @@ void loop() {
   static int16_t samples[BUFFER_SIZE * 2];
   static uint16_t waveform[WAVE_WIDTH];
 
+  // Generate samples
   for(int i = 0; i < BUFFER_SIZE; i++) {
     float sample = sin(2 * PI * phase);
     int16_t intSample = sample * 32767;
@@ -75,14 +74,17 @@ void loop() {
     if(i < WAVE_WIDTH) waveform[i] = map(intSample, -32768, 32767, 0, 135);
   }
 
+  // Output audio
   size_t bytes_written;
   i2s_write(I2S_PORT, samples, BUFFER_SIZE * 4, &bytes_written, portMAX_DELAY);
 
+  // Update display
   tft.fillScreen(TFT_BLACK);
   for(int i = 0; i < WAVE_WIDTH-1; i++) {
     tft.drawLine(i, waveform[i], i+1, waveform[i+1], TFT_GREEN);
   }
 
+  // Handle touch input
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
     frequency = map(x, 0, WAVE_WIDTH, 100, 2000);
