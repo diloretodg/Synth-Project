@@ -72,8 +72,9 @@ void loop() {
   }
   
   // Read touch input
-  uint16_t touchX = tft.getTouchRaw(0);
-  if(touchX > 100) {
-    frequency = map(touchX, 100, 4000, 100, 2000);
+  uint16_t x, y;
+  if (tft.getTouch(&x, &y)) {
+      // Use x coordinate for frequency control
+      frequency = map(x, 0, WAVE_WIDTH, 100, 2000);
   }
 }
