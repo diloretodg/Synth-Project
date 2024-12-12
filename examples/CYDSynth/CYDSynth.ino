@@ -5,8 +5,6 @@
 #define SAMPLE_RATE 44100  
 #define BUFFER_SIZE 128  
 #define I2S_PORT I2S_NUM_0  
-#define WAVE_WIDTH 320  
-#define WAVE_HEIGHT 240  
 #define I2S_COMM_FORMAT_STAND_I2S (I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB)  
 
 TFT_eSPI tft = TFT_eSPI();  
@@ -24,6 +22,7 @@ void setup() {
   tft.init();  
   tft.setRotation(3);  
   tft.fillScreen(TFT_BLACK);  
+  tft.setTouch(true);  // Enable touch
 
   // Draw test pattern to verify display  
   Serial.println("Drawing test pattern...");  
